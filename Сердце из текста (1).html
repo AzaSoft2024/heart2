@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Сердце из текста</title>
+<style>
+  :root{
+    --bg-top: #1a0810;
+    --bg-bottom: #0a0308;
+    --panel: rgba(255,255,255,0.05);
+    --panel-border: rgba(255,255,255,0.12);
+    --ink: #f5e9e9;
+    --ink-dim: #cbb3b8;
+    --accent: #ff5d7a;
+    --accent-2: #ffd166;
+    --accent-3: #c81e5c;
+    font-family: 'Georgia', 'Iowan Old Style', serif;
+  }
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --bg-top: #fdeef1;
+      --bg-bottom: #fff8f6;
+      --panel: rgba(0,0,0,0.03);
+      --panel-border: rgba(0,0,0,0.1);
+      --ink: #341018;
+      --ink-dim: #7a4a54;
+    }
+  }
+  :root[data-theme="light"]{
+    --bg-top: #fdeef1;
+    --bg-bottom: #fff8f6;
+    --panel: rgba(0,0,0,0.03);
+    --panel-border: rgba(0,0,0,0.1);
+    --ink: #341018;
+    --ink-dim: #7a4a54;
+  }
+
+  *{ box-sizing: border-box; }
+  html,body{
+    margin:0; padding:0; height:100%;
+    background: radial-gradient(ellipse at 50% 20%, var(--bg-top), var(--bg-bottom));
+  }
+  body{
+    min-height:100%;
+    color: var(--ink);
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    overflow-x:hidden;
+  }
+
+  .wrap{
+    width:100%;
+    max-width: 720px;
+    padding: 32px 20px 48px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:22px;
+  }
+
+  h1{
+    font-size: clamp(22px, 5vw, 30px);
+    font-weight: 400;
+    letter-spacing: 0.3px;
+    margin: 6px 0 0;
+    text-align:center;
+    color: var(--ink);
+  }
+  h1 em{
+    font-style: italic;
+    color: var(--accent);
+  }
+  p.sub{
+    margin:0;
+    color: var(--ink-dim);
+    font-size: 15px;
+    text-align:center;
+    max-width: 460px;
+    line-height:1.5;
+  }
+
+  .controls{
+    width:100%;
+    display:flex;
+    gap:10px;
+    flex-wrap: wrap;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 14px;
+    backdrop-filter: blur(6px);
+  }
+  input[type="text"]{
+    flex: 1 1 220px;
+    min-width: 0;
+    font-family: inherit;
+    font-size: 16px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--panel-border);
+    background: rgba(255,255,255,0.04);
+    color: var(--ink);
+    outline: none;
+  }
+  :root[data-theme="light"] input[type="text"], @media (prefers-color-scheme: light){
+    input[type="text"]{ background: rgba(0,0,0,0.02); }
+  }
+  input[type="text"]::placeholder{ color: var(--ink-dim); opacity:0.7; }
+  input[type="text"]:focus{
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(255,93,122,0.18);
+  }
+
+  button{
+    font-family: inherit;
+    font-size: 15px;
+    padding: 12px 22px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    background: linear-gradient(135deg, var(--accent), var(--accent-3));
+    color: white;
+    letter-spacing: 0.2px;
+    transition: transform 0.15s ease, filter 0.15s ease;
+    flex: 0 0 auto;
+  }
+  button:hover{ filter: brightness(1.08); }
+  button:active{ transform: scale(0.97); }
+  button:focus-visible{ outline: 2px solid var(--accent-2); outline-offset:2px; }
+  button.secondary{
+    background: transparent;
+    border: 1px solid var(--panel-border);
+    color: var(--ink);
+  }
+
+  .stage{
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    max-height: 62vh;
+    border-radius: 18px;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse 60% 45% at 50% 42%, rgba(255,93,122,0.10), transparent 70%);
+    border: 1px solid var(--panel-border);
+  }
+  canvas{
+    display:block;
+    width:100%;
+    height:100%;
+  }
+  .hint{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding: 20px;
+    color: var(--ink-dim);
+    font-size: 14px;
+    pointer-events:none;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Сердце из <em>твоих слов</em></h1>
+    <p class="sub">Введи любую фразу — она размножится и сложится в бьющееся сердце.</p>
+
+    <div class="controls">
+      <input id="textInput" type="text" placeholder="Например: я тебя люблю" maxlength="40" autocomplete="off">
+      <button id="startBtn">Начать</button>
+      <button id="resetBtn" class="secondary">Сброс</button>
+    </div>
+
+    <div class="stage">
+      <canvas id="canvas"></canvas>
+      <div class="hint" id="hint">Введи текст и нажми «Начать»</div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const input = document.getElementById('textInput');
+  const startBtn = document.getElementById('startBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const hint = document.getElementById('hint');
+  const stage = canvas.parentElement;
+
+  let dpr = Math.max(1, window.devicePixelRatio || 1);
+  let W = 0, H = 0;
+  let points = [];
+  let animId = null;
+  let startTime = null;
+  let phase = 'idle'; // idle -> revealing -> beating
+
+  function resize(){
+    const rect = stage.getBoundingClientRect();
+    W = rect.width;
+    H = rect.height;
+    dpr = Math.max(1, window.devicePixelRatio || 1);
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if(points.length) buildPoints(currentText);
+  }
+
+  function heartMath(t){
+    // classic parametric heart curve (y up, point at bottom)
+    const x = 16 * Math.pow(Math.sin(t), 3);
+    const y = 13*Math.cos(t) - 5*Math.cos(2*t) - 2*Math.cos(3*t) - Math.cos(4*t);
+    return {x, y};
+  }
+
+  let currentText = '';
+
+  // how many concentric outline strands (gives the border a bit of thickness)
+  const STRANDS = [
+    { offset: 0,     hueShift: 0,  lightMul: 1.0  },
+    { offset: -0.028, hueShift: 14, lightMul: 0.85 }
+  ];
+
+  function buildPoints(text){
+    points = [];
+    if(!text) return;
+    const chars = Array.from(text.trim());
+    if(!chars.length) return;
+
+    const scale = Math.min(W, H) * 0.021;
+    const cx = W / 2;
+    const cy = H / 2 + Math.min(W, H) * 0.02;
+    const fontSize = Math.max(11, Math.min(17, Math.min(W, H) / 26));
+    const spacing = fontSize * 0.66;
+
+    let orderCounter = 0;
+
+    for(const strand of STRANDS){
+      const s = scale * (1 + strand.offset);
+
+      // fine-sample the curve to measure arc length in canvas space
+      const N = 2200;
+      const raw = [];
+      for(let i = 0; i <= N; i++){
+        const t = (i / N) * Math.PI * 2;
+        const m = heartMath(t);
+        raw.push({ x: cx + m.x * s, y: cy - m.y * s });
+      }
+      let cum = [0];
+      for(let i = 1; i < raw.length; i++){
+        const d = Math.hypot(raw[i].x - raw[i-1].x, raw[i].y - raw[i-1].y);
+        cum.push(cum[i-1] + d);
+      }
+      const total = cum[cum.length - 1];
+      const count = Math.max(8, Math.floor(total / spacing));
+
+      let idx = 1;
+      let ci = 0;
+      for(let k = 0; k < count; k++){
+        const targetDist = (k / count) * total;
+        while(idx < cum.length - 1 && cum[idx] < targetDist) idx++;
+        const p0 = raw[idx-1], p1 = raw[idx];
+        const seg = cum[idx] - cum[idx-1] || 1;
+        const localT = (targetDist - cum[idx-1]) / seg;
+        const px = p0.x + (p1.x - p0.x) * localT;
+        const py = p0.y + (p1.y - p0.y) * localT;
+
+        // tangent direction for character rotation, following the curve
+        const ang = Math.atan2(p1.y - p0.y, p1.x - p0.x);
+
+        const ch = chars[ci % chars.length];
+        ci++;
+
+        points.push({
+          x: px, y: py,
+          ch: ch,
+          rot: ang,
+          delay: orderCounter * 14,
+          size: fontSize,
+          hue: 344 + strand.hueShift + Math.random() * 10,
+          light: (58 * strand.lightMul) + Math.random() * 8,
+          twinkleOffset: Math.random() * Math.PI * 2
+        });
+        orderCounter++;
+      }
+    }
+  }
+
+  function draw(ts){
+    if(startTime === null) startTime = ts;
+    const elapsed = ts - startTime;
+
+    ctx.clearRect(0, 0, W, H);
+
+    // gentle heartbeat pulse (lub-dub)
+    const beatCycle = 1100;
+    const t = (elapsed % beatCycle) / beatCycle;
+    let pulse = 0;
+    const lub = Math.exp(-Math.pow((t - 0.05) * 14, 2)) * 1.0;
+    const dub = Math.exp(-Math.pow((t - 0.22) * 16, 2)) * 0.6;
+    pulse = lub + dub;
+    const scalePulse = 1 + pulse * 0.045;
+
+    ctx.save();
+    ctx.translate(W/2, H/2);
+    ctx.scale(scalePulse, scalePulse);
+    ctx.translate(-W/2, -H/2);
+
+    let allRevealed = true;
+    for(const p of points){
+      const localT = elapsed - p.delay;
+      let alpha, sizeMul, yOffset;
+      if(localT < 0){
+        allRevealed = false;
+        continue;
+      } else if(localT < 380){
+        const k = localT / 380;
+        alpha = k;
+        sizeMul = 0.3 + 0.9 * k;
+        yOffset = (1 - k) * 14;
+      } else {
+        alpha = 0.92 + Math.sin(elapsed/900 + p.twinkleOffset) * 0.08;
+        sizeMul = 1;
+        yOffset = 0;
+      }
+
+      ctx.save();
+      ctx.translate(p.x, p.y - yOffset);
+      ctx.rotate(p.rot);
+      ctx.scale(sizeMul, sizeMul);
+      ctx.font = `600 ${p.size}px Georgia, serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = `hsla(${p.hue}, 85%, ${p.light}%, ${Math.max(0, Math.min(1, alpha))})`;
+      ctx.shadowColor = `hsla(${p.hue}, 90%, 60%, 0.5)`;
+      ctx.shadowBlur = 6;
+      ctx.fillText(p.ch, 0, 0);
+      ctx.restore();
+    }
+
+    ctx.restore();
+
+    if(phase === 'revealing' && allRevealed){
+      phase = 'beating';
+    }
+
+    animId = requestAnimationFrame(draw);
+  }
+
+  function start(){
+    const text = input.value.trim();
+    if(!text){
+      input.focus();
+      input.style.borderColor = '#ff5d7a';
+      setTimeout(()=>{ input.style.borderColor = ''; }, 600);
+      return;
+    }
+    currentText = text.replace(/\s+/g, ' ');
+    hint.style.display = 'none';
+    stop();
+    buildPoints(currentText);
+    startTime = null;
+    phase = 'revealing';
+    animId = requestAnimationFrame(draw);
+  }
+
+  function stop(){
+    if(animId) cancelAnimationFrame(animId);
+    animId = null;
+  }
+
+  function reset(){
+    stop();
+    points = [];
+    currentText = '';
+    startTime = null;
+    phase = 'idle';
+    ctx.clearRect(0, 0, W, H);
+    hint.style.display = 'flex';
+    input.value = '';
+    input.focus();
+  }
+
+  startBtn.addEventListener('click', start);
+  resetBtn.addEventListener('click', reset);
+  input.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter') start();
+  });
+
+  window.addEventListener('resize', resize);
+  resize();
+})();
+</script>
+</body>
+</html>
